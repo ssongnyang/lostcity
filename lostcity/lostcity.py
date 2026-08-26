@@ -6,6 +6,7 @@ from random import shuffle
 
 from lostcity.card import Card, Color, all_cards
 from lostcity.player import Player
+from lostcity.log import Log
 
 class LostCityGame:
     def __init__(self, players: list[Player], expansion: bool, thread: discord.Thread):
@@ -15,7 +16,17 @@ class LostCityGame:
         self.turn: int = 0
         self.deck: list[Card] = all_cards(expansion)
         self.board: dict[Color, list[Card]] = {}
+        self.log: list[Log] = []
         shuffle(self.deck)
+
+
+    @property
+    def now_player(self):
+        return players[self.turn % 2]
+
+    @property
+    def previous_player(self):
+        return players[self.turn % 2 - 1]
 
     def start(self):
         try:
@@ -27,6 +38,7 @@ class LostCityGame:
         for p in self.players:
             for i in range(8):
                 self.draw_card(p)
+        self.log.clear()
         
     def draw_card(self, p, from_board = False, color: None | Color = None):
         if from_board:
@@ -34,13 +46,31 @@ class LostCityGame:
                 raise TypeError("from_board 값이 true일 때, color 값은 항상 함께 주어져야 합니다")
             if len(self.board[color]) == 0:
                 raise IndexError("해당 색깔의 카드는 보드에 없으므로 뽑을 수 없습니다")
-            p.hand.append(self.board[color].pop())
+            c = self.board[color].pop()
+            p.hand.append(c)
+            log.append(Log(Log.Move.DRAW, c))
         else:
-            p.hand.append(self.deck.pop())
+            c = self.deck.pop()
+            p.hand.append(c)
+            log.append(Log(Log.Move.GET, c))
 
     def put_card(self, p, card, to_board = False):
         if to_board:
-            p.delete_card(card)
+            c = p.delete_card(card)
+            self.board[card.color].append(c)
+            log.append(Log(Log.Move.DISCARD, c))
+        else:
+            c = p.delete_card(card)
+            p.board[card.color].append(c)
+            log.append(Log(Log.Move.PUT), c)
+
+    async def update_embed(self):
+        embed = discord.Embed(title="로스트 시티", color = LostCity.embed_color)
+        if self.log:
+            embed.description = f"{self.now_player.mention}님이 {self.log[-2]} {self.log[-1]}"
+            self.log.clear()
+        
+
 
     
 
