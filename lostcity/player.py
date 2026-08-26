@@ -6,7 +6,8 @@ class Player:
         self.itc = itc
         self.client = itc.user
         self.id = itc.user.id
-        self.card: list[Card] = []
+        self.hand: list[Card] = []
+        self.board: dict[Color, list[Card]] = {}
 
     def __eq__(self, other):
         if type(other)==int:
@@ -15,3 +16,14 @@ class Player:
             return False
         else:
             return self.id==other.id
+
+    def delete_card(self, card):
+        for i in range(len(self.hand)):
+            if self.hand[i] == card:
+                return self.hand.pop(i)
+        return False
+
+
+    @property
+    def mention(self):
+        return self.client.mention
