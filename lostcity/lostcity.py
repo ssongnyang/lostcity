@@ -68,29 +68,43 @@ class LostCityGame:
             log.append(Log(Log.Move.PUT), c)
 
     def play_turn(self, p: Player):
-        p_card = None
         buttons = []
         view = ui.View()
         for i in range(8):
-            button = CardSelectButton(index = i, style=discord.ButtonStyle.blurple, label = str(p.hand[i]), row = i // 4)
-            def card_select_callback(self, _itc):
-                p_card = p.delete_card(p.hand[i])
-                _view = ui.View()
+            button = CardSelectButton(p, card = p.hand[i], style=discord.ButtonStyle.blurple, label = str(p.hand[i]), row = i // 4)
+            button.callback = self.card_select_callback
 
-                for c in Color:
-                    if c == Color.PURPLE and not self.expansion:
-                        continue
-                    if len(self.board[c]) == 0:
-                        
-
-                for j in range(7):
-                    if j == 5 and not self.expansion:
-                        continue
+            
                     
             view.add_item(button)
 
     
+    def card_select_callback(_self, _itc):
+        _self.p.delete_card(_self.card)
+        _view = ui.View()
 
+        #카드 버리는 버튼
+        btn_discard = discord.ui.Button(style=discord.Buttonstyle.red, label = "버리기", row = 0)
+        def btn_discard_callback(__self, __itc):
+            self.put_card(p, p_card, to_board = True)
+
+            #카드를 어디서 얻을지 물어보는 버튼
+            __view = ui.View()
+            for c in Color:
+                if c == Color.PURPLE and not expansion:
+                    continue
+                if self.board[c]: #버려진 카드가 있는 경우
+                    btn = discord.ui.Button(style = discord.ButtonStyle.blurple, label = str(self.board[c][-1]), row = c.value // 3)
+                    btn.callback
+        btn_discard.callback = btn_discard_callback
+
+        #카드 놓는 버튼
+        btn_put = discord.ui.Button(style = discord.Buttonstyle.green, label = "놓기", row = 0)
+        def btn_put_callback(__self, __itc):
+            self.put_card(p, p_card, to_board = False)
+
+            #카드를 어디서 얻을지 물어보는 버튼
+        btn_put.callback = btn_put_callback
         
         
 

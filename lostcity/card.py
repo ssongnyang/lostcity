@@ -47,12 +47,12 @@ class Card:
         return f"{self.color_emoji}{self.value_emoji}"
         
 class Color(Enum):
-    RED = 1
-    YELLOW = 2
-    GREEN = 3
-    BLUE = 4
-    WHITE = 5
-    PURPLE = 6
+    RED = 0
+    YELLOW = 1
+    GREEN = 2
+    BLUE = 3
+    WHITE = 4
+    PURPLE = 5
 
     def __str__(self):
         match(self):
