@@ -7,7 +7,7 @@ from random import shuffle
 from lostcity.card import Card, Color, all_cards
 from lostcity.player import Player
 from lostcity.log import Log
-from lostcity.button import CardSelectButton
+from lostcity.button import CardSelectButton, PutCardButton
 
 class LostCityGame:
     def __init__(self, players: list[Player], expansion: bool, thread: discord.Thread):
@@ -41,7 +41,10 @@ class LostCityGame:
         for p in self.players:
             for i in range(8):
                 self.draw_card(p)
+            p.player.msg = await p.itc.followup.send(embed=p.not_turn_embed, ephemeral=True)
+
         self.log.clear()
+        await self.play_turn(self.now_player)
         
     def draw_card(self, p: Player, from_board = False, color: None | Color = None):
         if from_board:
@@ -67,50 +70,49 @@ class LostCityGame:
             p.board[card.color].append(c)
             log.append(Log(Log.Move.PUT), c)
 
-    def play_turn(self, p: Player):
-        buttons = []
+    async def play_turn(self, p: Player):
         view = ui.View()
         for i in range(8):
-            button = CardSelectButton(p, card = p.hand[i], style=discord.ButtonStyle.blurple, label = str(p.hand[i]), row = i // 4)
-            button.callback = self.card_select_callback
-
-            
-                    
+            button = CardSelectButton(self, p, card = p.hand[i], style=discord.ButtonStyle.blurple, label = str(p.hand[i]), row = i // 4)
+            button.callback = self.card_select_callback   
             view.add_item(button)
+        await p.itc.followup.edit_message(message_id=p.player_msg.id, embed=p.turn_start_embed, view=view)
 
     
-    def card_select_callback(_self, _itc):
-        _self.p.delete_card(_self.card)
-        _view = ui.View()
-
+    async def card_select_callback(button, itc):
         #카드 버리는 버튼
-        btn_discard = discord.ui.Button(style=discord.Buttonstyle.red, label = "버리기", row = 0)
-        def btn_discard_callback(__self, __itc):
-            self.put_card(p, p_card, to_board = True)
-
-            #카드를 어디서 얻을지 물어보는 버튼
-            __view = ui.View()
-            for c in Color:
-                if c == Color.PURPLE and not expansion:
-                    continue
-                if self.board[c]: #버려진 카드가 있는 경우
-                    btn = discord.ui.Button(style = discord.ButtonStyle.blurple, label = str(self.board[c][-1]), row = c.value // 3)
-                    btn.callback
-        btn_discard.callback = btn_discard_callback
+        btn_discard = PutCardButton(button, to_board = True, style=discord.ButtonStyle.red, label = "버리기", row = 0)
+        btn_discard.callback = discard_callback
 
         #카드 놓는 버튼
-        btn_put = discord.ui.Button(style = discord.Buttonstyle.green, label = "놓기", row = 0)
-        def btn_put_callback(__self, __itc):
-            self.put_card(p, p_card, to_board = False)
+        btn_put = PutButton(button, to_board = False, style = discord.ButtonStyle.green, label = "놓기", row = 0)
+        btn_put.callback = put_callback
+        
+        view = ui.View()
+        view.add_item(btn_discard)
+        view.add_item(btn_put)
+        await itc.response.edit_message(embed=button.p.discard_or_put_embed, view=view)
+    
+    def discard_or_put_callback(button, itc):
+        p = button.p
+        card = button.card
+        self.put_card(p, card, button.to_board)
+        #카드를 어디서 가져올지 묻는 버튼
+        for c in Color:
+            if c == Color.PURPLE and not expansion:
+                continue
+            if self.board[c]:
+            btn = CardSelectButton(p, card = self.board[c][-1], style=discord.ButtonStyle.blurple, label=)
+        
 
-            #카드를 어디서 얻을지 물어보는 버튼
-        btn_put.callback = btn_put_callback
+
+
         
         
 
-    async def update_embed(self, first = False):
+    async def update_embed(self, log: False, first = False):
         embed = discord.Embed(title="로스트 시티", color = LostCity.embed_color)
-        if self.log:
+        if log:
             embed.description = f"{self.now_player.mention}님이 {self.log[-2]} {self.log[-1]}"
             self.log.clear()
 
@@ -286,7 +288,7 @@ class LostCity(commands.Cog):
             view=ui.View()
             view.add_item(btn_game_cancel)
             
-            embed=discord.Embed(title="러브레터", description=f"{game.starter.client.mention}님이 새로운 로스트 시티 게임을 시작했습니다.\nㅤ\n스레드에서 진행을 확인하세요.", color=self.embed_color)
+            embed=discord.Embed(title="로스트 시티", description=f"{game.starter.client.mention}님이 새로운 로스트 시티 게임을 시작했습니다.\nㅤ\n스레드에서 진행을 확인하세요.", color=self.embed_color)
 
             await _itc.response.defer()
             await _itc.followup.edit_message(message_id=_itc.message.id, embed=embed, view=view)

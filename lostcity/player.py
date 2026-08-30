@@ -8,8 +8,35 @@ class Player:
         self.id = itc.user.id
         self.hand: list[Card] = []
         self.board: dict[Color, list[Card]] = {}
-        self.hand_msg = None
+        self.player_msg = None
+    
+    @property
+    def not_turn_embed(self):
+        self.sort()
+        embed = discord.Embed(title=":x: 지금은 당신의 차례가 아닙니다.", description="잠시 차례를 기다려 주세요.", color = 0xff0000)
+        embed.add_field(name="당신의 카드", value=", ".join([str(c) for c in self.hand]))
+        return embed
 
+    @property
+    def turn_start_embed(self):
+        self.sort()
+        embed = discord.Embed(title="당신의 차례입니다.", description="버리거나 놓을 카드를 선택해 주세요.", color = 0x00ff00)
+        embed.add_field(name="당신의 카드", value=", ".join([str(c) for c in self.hand]))
+        return embed
+
+    @property
+    def discard_or_put_embed(self):
+        self.sort()
+        embed = discord.Embed(title="당신의 차례입니다.", description="카드를 버릴지 높을지 선택해 주세요.", color = 0x00ff00)
+        embed.add_field(name="당신의 카드", value=", ".join([str(c) for c in self.hand]))
+        return embed
+
+    @property
+    def draw_card_embed(self):
+        self.sort()
+        embed = discord.Embed(title="당신의 차례입니다.", description="손으로 가져올 카드를 선택해 주세요.", color = 0x00ff00)
+        embed.add_field(name="당신의 카드", value=", ".join([str(c) for c in self.hand]))
+        return embed
         
     def __eq__(self, other):
         if type(other)==int:
@@ -24,6 +51,9 @@ class Player:
             if self.hand[i] == card:
                 return self.hand.pop(i)
         return False
+
+    def sort(self):
+        self.hand.sort(key=lambda x: (x.color.value, x.value))
 
 
     @property
