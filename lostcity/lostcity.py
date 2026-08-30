@@ -7,6 +7,7 @@ from random import shuffle
 from lostcity.card import Card, Color, all_cards
 from lostcity.player import Player
 from lostcity.log import Log
+from lostcity.button import CardSelectButton
 
 class LostCityGame:
     def __init__(self, players: list[Player], expansion: bool, thread: discord.Thread):
@@ -19,6 +20,8 @@ class LostCityGame:
         self.log: list[Log] = []
         shuffle(self.deck)
 
+        self.embed_msg = None
+
 
     @property
     def now_player(self):
@@ -28,7 +31,7 @@ class LostCityGame:
     def previous_player(self):
         return players[self.turn % 2 - 1]
 
-    def start(self):
+    async def start(self):
         try:
             for p in self.players:
                 await p.itc.response.defer()
@@ -40,7 +43,7 @@ class LostCityGame:
                 self.draw_card(p)
         self.log.clear()
         
-    def draw_card(self, p, from_board = False, color: None | Color = None):
+    def draw_card(self, p: Player, from_board = False, color: None | Color = None):
         if from_board:
             if color == None:
                 raise TypeError("from_board 값이 true일 때, color 값은 항상 함께 주어져야 합니다")
@@ -64,15 +67,79 @@ class LostCityGame:
             p.board[card.color].append(c)
             log.append(Log(Log.Move.PUT), c)
 
-    async def update_embed(self):
+    def play_turn(self, p: Player):
+        p_card = None
+        buttons = []
+        view = ui.View()
+        for i in range(8):
+            button = CardSelectButton(index = i, style=discord.ButtonStyle.blurple, label = str(p.hand[i]), row = i // 4)
+            def card_select_callback(self, _itc):
+                p_card = p.delete_card(p.hand[i])
+                _view = ui.View()
+
+                for c in Color:
+                    if c == Color.PURPLE and not self.expansion:
+                        continue
+                    if len(self.board[c]) == 0:
+                        
+
+                for j in range(7):
+                    if j == 5 and not self.expansion:
+                        continue
+                    
+            view.add_item(button)
+
+    
+
+        
+        
+
+    async def update_embed(self, first = False):
         embed = discord.Embed(title="로스트 시티", color = LostCity.embed_color)
         if self.log:
             embed.description = f"{self.now_player.mention}님이 {self.log[-2]} {self.log[-1]}"
             self.log.clear()
-        
 
+        #첫 번째 플레이어 앞 카드    
+        p = self.players[0]
+        for c in Color:
+            if c == Color.PURPLE and expansion == False:
+                continue
+            embed.add_field(name=p.mention, value=f"{c}: {" ".join([x.value_emoji for x in p.board[c]])}", inline = False)
+            
+        #중앙 보드판
+        string = ""
+        for c in Color:
+            if c == Color.PURPLE and expansion == False:
+                continue
+            if len(self.board[c]) == 0:
+                string += f"{c}(:x:)  "
+            else:
+                string += f"{c}({self.board[c][-1]})  "
+        embed.add_field(name="중앙", value=string)
+
+        #두 번째 플레이어 앞 카드 
+        p = self.players[1]
+        for c in Color:
+            if c == Color.PURPLE and expansion == False:
+                continue
+            embed.add_field(name=p.mention, value=f"{c}: {" ".join([x.value_emoji for x in p.board[c]])}", inline = False)
+            
+        embed.set_footer(text=f"턴 : {self.turn}")
+
+        if first:
+            self.embed_msg = await self.thread.send(embed=embed)
+        else:
+            self.embed_msg.edit(embed = embed)
+
+        if self.deck:
+            
+            
 
     
+
+
+
 
         
     
@@ -170,7 +237,7 @@ class LostCity(commands.Cog):
             await _itc.response.defer()
             if len(game.players) > 2:
                 await _itc.response.send_message(f"이미 자리가 꽉 찼습니다.", ephemeral=True)
-            else if game.add_player(_itc):
+            elif game.add_player(_itc):
                 embed.remove_field(1)
                 embed.add_field(name="현재 멤버", value=game.print_player_mention(), inline=True)
                 await _itc.message.edit(embed=embed)

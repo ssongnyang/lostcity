@@ -8,50 +8,43 @@ class Card:
     def __eq__(self, other):
         return self.color == other.color and self.value == other.value
 
+    @property
+    def color_emoji(self):
+        return str(self.color)
+
+    @property
+    def value_emoji(self):
+        match(self.value):
+            case 0:
+                emoji = "🤝"
+            case 2:
+                emoji = "2️⃣"
+            case 3:
+                emoji = "3️⃣"
+            case 4:
+                emoji = "4️⃣"
+            case 5:
+                emoji = "5️⃣"
+            case 6:
+                vmoji = "6️⃣"
+            case 7:
+                emoji = "7️⃣"
+            case 8:
+                emoji = "8️⃣"
+            case 9:
+                emoji = "9️⃣"
+            case 10:
+                emoji = "🔟"
+        return emoji
+
     def is_wager(self):
         return self.value == 0
 
     def is_number(self):
         return not self.is_wager()
 
-    def __str__(self):
-        match(self.color)
-            case Color.RED:
-                color_emoji = ":red_square:"
-            case Color.YELLOW:
-                color_emoji = ":yellow_square:"
-            case Color.GREEN:
-                color_emoji = ":green_square:"
-            case Color.BLUE:
-                color_emoji = ":blue_square:"
-            case Color.WHITE:
-                color_emoji = ":white_square:"
-            case Color.PURPLE:
-                color_emoji = ":purple_square:"
-                
-        match(self.value)
-            case 0:
-                value_emoji = "🤝"
-            case 2:
-                value_emoji = "2️⃣"
-            case 3:
-                value_emoji = "3️⃣"
-            case 4:
-                value_emoji = "4️⃣"
-            case 5:
-                value_emoji = "5️⃣"
-            case 6:
-                value_emoji = "6️⃣"
-            case 7:
-                value_emoji = "7️⃣"
-            case 8:
-                value_emoji = "8️⃣"
-            case 9:
-                value_emoji = "9️⃣"
-            case 10:
-                value_emoji = "🔟"
-            
-        return f"{color_emoji}{value_emoji}"
+    def __str__(self):  
+        return f"{self.color_emoji}{self.value_emoji}"
         
 class Color(Enum):
     RED = 1
@@ -60,6 +53,22 @@ class Color(Enum):
     BLUE = 4
     WHITE = 5
     PURPLE = 6
+
+    def __str__(self):
+        match(self):
+            case Color.RED:
+                emoji = ":red_square:"
+            case Color.YELLOW:
+                emoji = ":yellow_square:"
+            case Color.GREEN:
+                emoji = ":green_square:"
+            case Color.BLUE:
+                emoji = ":blue_square:"
+            case Color.WHITE:
+                emoji = ":white_large_square:"
+            case Color.PURPLE:
+                emoji = ":purple_square:"
+        return emoji
 
 def all_cards(expansion: bool = True) -> list[Card]:
     result = []

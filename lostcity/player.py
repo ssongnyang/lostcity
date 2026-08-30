@@ -8,7 +8,9 @@ class Player:
         self.id = itc.user.id
         self.hand: list[Card] = []
         self.board: dict[Color, list[Card]] = {}
+        self.hand_msg = None
 
+        
     def __eq__(self, other):
         if type(other)==int:
             return self.id==other
