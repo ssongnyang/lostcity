@@ -27,7 +27,7 @@ class Player:
     @property
     def discard_or_put_embed(self):
         self.sort()
-        embed = discord.Embed(title="당신의 차례입니다.", description="카드를 버릴지 높을지 선택해 주세요.", color = 0x00ff00)
+        embed = discord.Embed(title="당신의 차례입니다.", description="카드를 버릴지 놓을지 선택해 주세요.", color = 0x00ff00)
         embed.add_field(name="당신의 카드", value=", ".join([str(c) for c in self.hand]))
         return embed
 

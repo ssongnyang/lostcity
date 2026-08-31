@@ -82,27 +82,44 @@ class LostCityGame:
     async def card_select_callback(button, itc):
         #카드 버리는 버튼
         btn_discard = PutCardButton(button, to_board = True, style=discord.ButtonStyle.red, label = "버리기", row = 0)
-        btn_discard.callback = discard_callback
+        btn_discard.callback = self.discard_or_put_callback
 
         #카드 놓는 버튼
-        btn_put = PutButton(button, to_board = False, style = discord.ButtonStyle.green, label = "놓기", row = 0)
-        btn_put.callback = put_callback
+        btn_put = PutCardButton(button, to_board = False, style = discord.ButtonStyle.green, label = "놓기", row = 0)
+        btn_put.callback = self.discard_or_put_callback
         
         view = ui.View()
         view.add_item(btn_discard)
         view.add_item(btn_put)
         await itc.response.edit_message(embed=button.p.discard_or_put_embed, view=view)
     
-    def discard_or_put_callback(button, itc):
+    async def discard_or_put_callback(button, itc):
         p = button.p
         card = button.card
-        self.put_card(p, card, button.to_board)
+        button.game.put_card(p, card, button.to_board)
+
+        view = ui.View()
         #카드를 어디서 가져올지 묻는 버튼
         for c in Color:
             if c == Color.PURPLE and not expansion:
                 continue
+
             if self.board[c]:
-            btn = CardSelectButton(p, card = self.board[c][-1], style=discord.ButtonStyle.blurple, label=)
+                btn = DrawCardButton(self, p, card = self.board[c][-1], style=discord.ButtonStyle.blurple, label=str(self.board[c][-1]))
+            else:
+                btn = DrawCardButton(self, p, card = None, style=discord.ButtonStyle.gray, label=str(c))
+                btn.disabled = True
+            btn.callback = self.draw_callback
+            view.add_item(btn)
+        btn = CardSelectButton(self, p, card = self.deck[0], style=discord.ButtonStyle.green, label="덱 위")
+        view.add_item(btn)
+        await itc.response.edit_message(embed=p.draw_card_embed, view=view)
+
+    async def draw_callback(button, itc):
+        button.game.draw_card()
+
+
+        
         
 
 
@@ -110,7 +127,7 @@ class LostCityGame:
         
         
 
-    async def update_embed(self, log: False, first = False):
+    async def update_embed(self, log = False, first = False):
         embed = discord.Embed(title="로스트 시티", color = LostCity.embed_color)
         if log:
             embed.description = f"{self.now_player.mention}님이 {self.log[-2]} {self.log[-1]}"

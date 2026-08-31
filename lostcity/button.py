@@ -8,7 +8,11 @@ class CardSelectButton(Button):
         self.card = card
 
 class PutCardButton(CardSelectButton):
-    def __init__(self, button, to_board = False, **kwargs):
-        super().__init__(button.p, button.card, **kwargs)
+    def __init__(self, button, to_board, **kwargs):
+        super().__init__(button.game, button.p, button.card, **kwargs)
         self.to_board = to_board
         
+class DrawCardButton(CardSelectButton):
+    def __init__(self, button, from_board, **kwargs):
+        super().__init__(button.game, button.p, button.card, **kwargs)
+        self.from_board = from_board
