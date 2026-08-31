@@ -111,12 +111,24 @@ class LostCityGame:
                 btn.disabled = True
             btn.callback = self.draw_callback
             view.add_item(btn)
-        btn = CardSelectButton(self, p, card = self.deck[0], style=discord.ButtonStyle.green, label="덱 위")
+
+        btn = CardSelectButton(self, p, card = self.deck[-1], style=discord.ButtonStyle.green, label="덱 위")
+        btn.callback = self.draw_callback
         view.add_item(btn)
+
         await itc.response.edit_message(embed=p.draw_card_embed, view=view)
 
     async def draw_callback(button, itc):
-        button.game.draw_card()
+        p = button.p
+        card = button.card
+        game = button.game
+        button.game.draw_card(p, card, button.from_board)
+
+        await game.update_embed(log = True)
+        game.turn += 1
+        await itc.response.edit_message(embed=p.not_turn_embed, view = None)
+        await game.play_turn(game.now_player)
+
 
 
         
@@ -158,7 +170,7 @@ class LostCityGame:
                 continue
             embed.add_field(name=p.mention, value=f"{c}: {" ".join([x.value_emoji for x in p.board[c]])}", inline = False)
             
-        embed.set_footer(text=f"턴 : {self.turn}")
+        embed.set_footer(text=f"턴 : {self.turn + 1}")
 
         if first:
             self.embed_msg = await self.thread.send(embed=embed)
