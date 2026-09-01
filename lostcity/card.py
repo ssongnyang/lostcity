@@ -26,7 +26,7 @@ class Card:
             case 5:
                 emoji = "5️⃣"
             case 6:
-                vmoji = "6️⃣"
+                emoji = "6️⃣"
             case 7:
                 emoji = "7️⃣"
             case 8:
