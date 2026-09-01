@@ -8,18 +8,13 @@ from dotenv import load_dotenv
 
 from lostcity.lostcity import LostCity
 
-
+intents = discord.Intents.default()
+intents.message_content = True
 bot = commands.Bot(command_prefix='?', intents=intents)
 
-# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-asyncio.run(main(), loop_factory=asyncio.SelectorEventLoop)
-
-def main():
-    intents = discord.Intents.default()
-    intents.message_content = True
+async def main():
     client=discord.Client(intents=intents)
     tree=app_commands.CommandTree(client)
-
 
     load_dotenv()
     bot.run(os.environ.get('TOKEN'))
@@ -36,6 +31,7 @@ async def on_ready():
 async def sync(ctx):
     synced = await bot.tree.sync()
     print(f"synced: {len(synced)}")
-    
-    
 
+
+# asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+asyncio.run(main(), loop_factory=asyncio.SelectorEventLoop)

@@ -1,18 +1,14 @@
 import discord
 from lostcity.card import Card, Color
 
-from collections import defaultdict
-
 class Player:
     def __init__(self, itc: discord.Interaction):
         self.itc = itc
         self.client = itc.user
         self.id = itc.user.id
         self.hand: list[Card] = []
-        self.board: dict[Color, list[Card]] = defaultdict(lambda: [])
+        self.board: dict[Color, list[Card]] = {}
         self.player_msg = None
-
-        self.score = 0
     
     @property
     def not_turn_embed(self):
@@ -58,23 +54,6 @@ class Player:
 
     def sort(self):
         self.hand.sort(key=lambda x: (x.color.value, x.value))
-
-    def score(self):
-        result = []
-        for c in Color:
-            if not self.board[c]:
-                continue
-            s = sum([card.value for card in self.board[c]])
-            if len(self.board[c]) >= 8:
-                s += 20
-            cnt = 1
-            for card in self.board[c]:
-                if card.is_wager():
-                    cnt += 1
-            s *= cnt
-            
-            result.append((c, s))
-        return result
 
 
     @property

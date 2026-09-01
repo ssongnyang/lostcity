@@ -3,7 +3,6 @@ from discord import ui, app_commands
 from discord.ext import commands
 
 from random import shuffle
-from collections import defaultdict
 
 from lostcity.card import Card, Color, all_cards
 from lostcity.player import Player
@@ -17,7 +16,7 @@ class LostCityGame:
         self.thread = thread
         self.turn: int = 0
         self.deck: list[Card] = all_cards(expansion)
-        self.board: dict[Color, list[Card]] = defaultdict(lambda: [])
+        self.board: dict[Color, list[Card]] = {}
         self.log: list[Log] = []
         shuffle(self.deck)
 
@@ -26,11 +25,11 @@ class LostCityGame:
 
     @property
     def now_player(self):
-        return players[self.turn % 2]
+        return self.players[self.turn % 2]
 
     @property
     def previous_player(self):
-        return players[self.turn % 2 - 1]
+        return self.players[self.turn % 2 - 1]
 
     async def start(self):
         try:
@@ -45,7 +44,6 @@ class LostCityGame:
             p.player.msg = await p.itc.followup.send(embed=p.not_turn_embed, ephemeral=True)
 
         self.log.clear()
-        await self.update(log = False, first = True)
         await self.play_turn(self.now_player)
         
     def draw_card(self, p: Player, from_board = False, color: None | Color = None):
@@ -56,21 +54,21 @@ class LostCityGame:
                 raise IndexError("해당 색깔의 카드는 보드에 없으므로 뽑을 수 없습니다")
             c = self.board[color].pop()
             p.hand.append(c)
-            log.append(Log(Log.Move.DRAW, c))
+            self.log.append(Log(Log.Move.DRAW, c))
         else:
             c = self.deck.pop()
             p.hand.append(c)
-            log.append(Log(Log.Move.GET, c))
+            self.log.append(Log(Log.Move.GET, c))
 
     def put_card(self, p, card, to_board = False):
         if to_board:
             c = p.delete_card(card)
             self.board[card.color].append(c)
-            log.append(Log(Log.Move.DISCARD, c))
+            self.log.append(Log(Log.Move.DISCARD, c))
         else:
             c = p.delete_card(card)
             p.board[card.color].append(c)
-            log.append(Log(Log.Move.PUT), c)
+            self.log.append(Log(Log.Move.PUT), c)
 
     async def play_turn(self, p: Player):
         view = ui.View()
@@ -82,11 +80,13 @@ class LostCityGame:
 
     
     async def card_select_callback(button, itc):
+        #카드 버리는 버튼
         btn_discard = PutCardButton(button, to_board = True, style=discord.ButtonStyle.red, label = "버리기", row = 0)
-        btn_discard.callback = self.discard_or_put_callback
+        btn_discard.callback = button.game.discard_or_put_callback
 
+        #카드 놓는 버튼
         btn_put = PutCardButton(button, to_board = False, style = discord.ButtonStyle.green, label = "놓기", row = 0)
-        btn_put.callback = self.discard_or_put_callback
+        btn_put.callback = button.game.discard_or_put_callback
         
         view = ui.View()
         view.add_item(btn_discard)
@@ -96,23 +96,25 @@ class LostCityGame:
     async def discard_or_put_callback(button, itc):
         p = button.p
         card = button.card
+        game = button.game
         button.game.put_card(p, card, button.to_board)
 
         view = ui.View()
+        #카드를 어디서 가져올지 묻는 버튼
         for c in Color:
-            if c == Color.PURPLE and not expansion:
+            if c == Color.PURPLE and not game.expansion:
                 continue
 
-            if self.board[c]:
-                btn = DrawCardButton(self, p, card = self.board[c][-1], style=discord.ButtonStyle.blurple, label=str(self.board[c][-1]))
+            if game.board[c]:
+                btn = DrawCardButton(button, card = game.board[c][-1], style=discord.ButtonStyle.blurple, label=str(game.board[c][-1]))
             else:
-                btn = DrawCardButton(self, p, card = None, style=discord.ButtonStyle.gray, label=str(c))
+                btn = DrawCardButton(button, card = None, style=discord.ButtonStyle.gray, label=str(c))
                 btn.disabled = True
-            btn.callback = self.draw_callback
+            btn.callback = game.draw_callback
             view.add_item(btn)
 
-        btn = CardSelectButton(self, p, card = self.deck[-1], style=discord.ButtonStyle.green, label="덱 위")
-        btn.callback = self.draw_callback
+        btn = CardSelectButton(game, p, card = game.deck[-1], style=discord.ButtonStyle.green, label="덱 위")
+        btn.callback = game.draw_callback
         view.add_item(btn)
 
         await itc.response.edit_message(embed=p.draw_card_embed, view=view)
@@ -124,48 +126,10 @@ class LostCityGame:
         button.game.draw_card(p, card, button.from_board)
 
         await game.update_embed(log = True)
-        await itc.response.edit_message(embed=p.not_turn_embed, view = None)
-        if not game.deck:
-            await game.finish()
-            return
-
         game.turn += 1
+        await itc.response.edit_message(embed=p.not_turn_embed, view = None)
         await game.play_turn(game.now_player)
 
-
-
-    async def finish(self):
-        embed = discord.Embed(title="게임 결과", description="덱의 카드가 다 떨어졌습니다.", color = self.embed_color)
-        scores = []
-        for p in self.players:
-            score = sum([s[1] for s in p.score()])
-            scores.append(score)
-            embed.add_field(name=p.mention + f" : {score}", description=" + ".join([f"{s.c}({s.s})" for s in p.score]))
-            await p.player_msg.delete()
-        await self.thread.send(embed=embed)
-
-        if scores[0] > scores[1]:
-            winner = self.players[0]
-        elif scores[0] < scores[1]:
-            winner = self.players[1]
-        else:
-            winner = None
-            
-        if winner:
-            embed=discord.Embed(title="로스트 시티", description=f"{winner.mention}님이 승리했습니다!", color=self.embed_color)
-            embed.set_image(url=winner.client.display_avatar.url)
-            await winner.itc.followup.edit_message(message_id=self.thread.id, embed=embed)
-            
-        else:
-            embed=discord.Embed(title="로스트 시티", description=f"점수가 같아 무승부로 끝났습니다.", color=self.embed_color)
-            await self.players[0].itc.followup.edit_message(message_id=self.thread.id, embed=embed)
-        await self.thread.edit(archived=True)
-        
-
-
-
-        
-        
 
     async def update_embed(self, log = False, first = False):
         embed = discord.Embed(title="로스트 시티", color = LostCity.embed_color)
@@ -176,14 +140,14 @@ class LostCityGame:
         #첫 번째 플레이어 앞 카드    
         p = self.players[0]
         for c in Color:
-            if c == Color.PURPLE and expansion == False:
+            if c == Color.PURPLE and self.expansion == False:
                 continue
             embed.add_field(name=p.mention, value=f"{c}: {" ".join([x.value_emoji for x in p.board[c]])}", inline = False)
             
         #중앙 보드판
         string = ""
         for c in Color:
-            if c == Color.PURPLE and expansion == False:
+            if c == Color.PURPLE and self.expansion == False:
                 continue
             if len(self.board[c]) == 0:
                 string += f"{c}(:x:)  "
@@ -194,7 +158,7 @@ class LostCityGame:
         #두 번째 플레이어 앞 카드 
         p = self.players[1]
         for c in Color:
-            if c == Color.PURPLE and expansion == False:
+            if c == Color.PURPLE and self.expansion == False:
                 continue
             embed.add_field(name=p.mention, value=f"{c}: {" ".join([x.value_emoji for x in p.board[c]])}", inline = False)
             

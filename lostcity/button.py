@@ -13,6 +13,6 @@ class PutCardButton(CardSelectButton):
         self.to_board = to_board
         
 class DrawCardButton(CardSelectButton):
-    def __init__(self, button, from_board, **kwargs):
-        super().__init__(button.game, button.p, button.card, **kwargs)
+    def __init__(self, button, card, from_board, **kwargs):
+        super().__init__(button.game, button.p, card, **kwargs)
         self.from_board = from_board
